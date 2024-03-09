@@ -1,4 +1,4 @@
-package flynet
+package base
 
 import "net"
 
@@ -46,13 +46,12 @@ type (
 		// Close 关闭底层conn
 		Close() error
 	}
-
 	// EventHandler 长连接网关的网络事件
 	EventHandler interface {
 		// OnData 收到完整数据包时触发
 		OnData(conn Conn)
 
-		// OnConnect 和服务器建立好连接时触发
+		// OnConnect 和服务器建立好连接时触发,对于ws协议来说，则是升级完成
 		OnConnect(conn Conn)
 
 		// OnClose 和服务器断开连接时触发

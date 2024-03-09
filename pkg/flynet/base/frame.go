@@ -1,8 +1,8 @@
-package flynet
+package base
 
 type (
 	FrameHeader struct {
-		//	TODO:没想好有什么类型的字段
+		//	TODO:没想好添加什么字段
 	}
 	Frame struct {
 		FrameHeader
