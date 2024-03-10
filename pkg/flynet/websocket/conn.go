@@ -70,13 +70,34 @@ func (w *wsConn) ReleaseFrames() {
 }
 
 func (w *wsConn) Write(frame *base.Frame) error {
-	//TODO implement me
-	panic("implement me")
+	//TODO:先支持binary类型的消息
+	wsFrame := w.getFrame()
+
+	data, err := wsFrame.WriteBinary(frame.FrameBody)
+	if err != nil {
+		return err
+	}
+
+	_, err = w.conn.Write(data)
+	w.freeFrame(wsFrame)
+	return err
 }
 
 func (w *wsConn) AsyncWrite(frame *base.Frame) error {
-	//TODO implement me
-	panic("implement me")
+	//TODO:先支持binary类型的消息
+	wsFrame := w.getFrame()
+
+	data, err := wsFrame.WriteBinary(frame.FrameBody)
+	if err != nil {
+		return err
+	}
+
+	err = w.conn.AsyncWrite(data, func(c gnet.Conn, err error) error {
+		w.freeFrame(wsFrame)
+		return nil
+	})
+
+	return err
 }
 
 func (w *wsConn) Close() error {
