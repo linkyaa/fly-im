@@ -1,14 +1,47 @@
 package main
 
 import (
-	"fmt"
 	"github.com/linkyaa/fly-im/pkg/flynet"
 	"github.com/linkyaa/fly-im/pkg/flynet/base"
 	. "github.com/linkyaa/fly-im/pkg/logx"
+	"go.uber.org/zap"
+	"os"
+	"os/signal"
+	"time"
 )
 
+type (
+	eventHandle struct {
+	}
+)
+
+func (e *eventHandle) OnData(conn base.Conn) {
+	//TODO:多协议的支持,这里还不清楚怎么处理,也许判断协议类型.
+	frames := conn.GetWsFrames()
+	for _, frame := range frames {
+		Logger.Info(string(frame.Payload), zap.Int("code", int(frame.OpCode)))
+	}
+	conn.ReleaseFrames()
+}
+
+func (e *eventHandle) OnConnect(conn base.Conn) {
+	Logger.Info("on connect")
+}
+
+func (e *eventHandle) OnClose(conn base.Conn, err error) {
+	Logger.Info("on close")
+}
+
 func main() {
-	Logger.Debug("hello world!!!")
-	fmt.Print()
-	flynet.NewNetEngine(nil, base.NewDefaultAddrOption())
+	var event = &eventHandle{}
+	engine := flynet.NewNetEngine(event, base.NewDefaultAddrOption())
+	engine.Run()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, os.Kill)
+	<-quit
+	engine.Stop()
+	//TODO:协调stop.
+	time.Sleep(time.Second)
+	Logger.Info("stop server ...")
 }

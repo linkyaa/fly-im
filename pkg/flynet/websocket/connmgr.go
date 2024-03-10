@@ -9,7 +9,6 @@ import (
 type (
 	//连接管理:
 	//1. 连接超时
-	//2. xxxx
 	connMgr struct {
 		upgradeTimeout int64 //从tcp升级到ws的超时时间,单位5s
 		queue          *ring.Queue[*wsConn]
@@ -51,10 +50,13 @@ func (cm *connMgr) check() {
 	for cm.queue.Length() != 0 {
 		conn := cm.queue.Peek()
 		if conn.connectTime+cm.upgradeTimeout < now {
+			//没有超时
 			return
 		}
-		//TODO:可以增加close的原因把
-		_ = conn.Close()
+		//TODO:增加认证超时
+		if conn.status == upgrading {
+			_ = conn.conn.Close() //不直接调用Close,并发不安全
+		}
 		cm.queue.Remove()
 	}
 }
