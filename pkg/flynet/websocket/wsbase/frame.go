@@ -45,7 +45,8 @@ func (w *WsFrame) WriteBinary(payload []byte) (data []byte, err error) {
 	w.Header.Length = int64(len(payload))
 	w.payloadSize = len(payload)
 
-	if true {
+	//server side 不mask
+	if false {
 		binary.BigEndian.PutUint32(w.Mask[:], rand.Uint32())
 		w.Masked = true
 		ws.Cipher(payload, w.Mask, 0)
