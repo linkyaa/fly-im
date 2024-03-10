@@ -1,6 +1,9 @@
 package base
 
-import "net"
+import (
+	"github.com/linkyaa/fly-im/pkg/flynet/websocket/wsbase"
+	"net"
+)
 
 // flynet包作为长连接网关的网络引擎，是长连接网关的流量出入口
 // 考虑长连接网关要承载海量连接，Go原生的网络库会使用大量的协程,所以采用基于事件驱动的网络库.
@@ -29,8 +32,8 @@ type (
 		// Read 从conn读取完整的数据包
 		//Read(buf []byte) (int, error)
 
-		// GetFrames 获取完整的frame,考虑到对接上层，还是返回frame比较好
-		GetFrames() ([]*Frame, error)
+		// GetWsFrames 获取完整的frame,考虑到对接上层，还是返回frame比较好
+		GetWsFrames() []*wsbase.WsFrame
 		// ReleaseFrames 释放frame到内存池,释放之后frame将不可再用
 		ReleaseFrames()
 

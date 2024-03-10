@@ -15,7 +15,7 @@ TODO: 性能测试,协议完整性测试
 
 type (
 	Engine struct {
-		*base.Options
+		opt     *base.Options
 		ws      *websocketnet.WsNet
 		tcp     *tcpnet.TcpNet
 		handler base.EventHandler
@@ -35,6 +35,18 @@ func (e *Engine) Run() {
 	}
 }
 
+func (e *Engine) Stop() {
+	if e.ws != nil {
+		//启动websocket server
+		go e.ws.Stop()
+	}
+
+	if e.tcp != nil {
+		//启动tcp server
+		go e.tcp.Stop()
+	}
+}
+
 func NewNetEngine(handler base.EventHandler, addr *base.AddrOptions, opts ...base.Option) *Engine {
 	opt := base.NewDefaultOptions()
 	for _, apply := range opts {
@@ -51,7 +63,7 @@ func NewNetEngine(handler base.EventHandler, addr *base.AddrOptions, opts ...bas
 
 	res := &Engine{
 		handler: handler,
-		Options: opt,
+		opt:     opt,
 		pool:    opt.Pool,
 	}
 
