@@ -7,39 +7,67 @@ import (
 	"time"
 )
 
-//TODO:增加使用的便捷性,自定义logger
-
+// 全局日志
 var (
-	Logger  *zap.Logger
-	options *Options
-)
-
-type (
-	FlyLogger struct {
-		opt    *Options
-		logger *zap.Logger
-	}
+	Logger      *zap.Logger
+	atomicLevel zap.AtomicLevel
 )
 
 func init() {
-	options = &Options{Level: zapcore.DebugLevel}
+	atomicLevel = zap.NewAtomicLevelAt(zapcore.DebugLevel)
 	var w = zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stdout))
 	var enc = zapcore.NewConsoleEncoder(newEncoderConfig())
 	var core = zapcore.NewCore(
 		enc,
 		w,
-		options.Level,
+		atomicLevel,
 	)
 
-	Logger = zap.New(core).Named("fly-im")
+	//默认加上caller和stackTrac
+	//zap.AddCaller()
+	//zap.AddStacktrace 考虑作为参数配置
+	Logger = zap.New(core).Named("fly-im").WithOptions(zap.AddStacktrace(zapcore.ErrorLevel))
 }
 
 func Enable(level zapcore.Level) bool {
-	return options.Level >= level
+	return atomicLevel.Enabled(level)
 }
 
 func EnableDebug() bool {
-	return zapcore.DebugLevel >= options.Level
+	return atomicLevel.Enabled(zapcore.DebugLevel)
+}
+
+func SetLogLevel(level zapcore.Level) {
+	atomicLevel.SetLevel(level)
+}
+
+// WithName 使用前缀创建一个logger
+func WithName(name string) *zap.Logger {
+	return Logger.Named(name)
+}
+
+func Debug(msg string, fields ...zap.Field) {
+	Logger.Debug(msg, fields...)
+}
+
+func Info(msg string, fields ...zap.Field) {
+	Logger.Info(msg, fields...)
+}
+
+func Warn(msg string, fields ...zap.Field) {
+	Logger.Warn(msg, fields...)
+}
+
+func Error(msg string, fields ...zap.Field) {
+	Logger.Error(msg, fields...)
+}
+
+func Panic(msg string, fields ...zap.Field) {
+	Logger.Panic(msg, fields...)
+}
+
+func Fatal(msg string, fields ...zap.Field) {
+	Logger.Fatal(msg, fields...)
 }
 
 func newEncoderConfig() zapcore.EncoderConfig {

@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+//dispatch服务存在的意义在于, 使用网关进行解耦. 直接使用MQ也是可以的. 但是MQ太重了.
+
+//protoc --proto_path=${GOPATH}/pkg/mod/ --proto_path=. --gogofaster_out=plugins=grpc:. internal/pkg/protocol/dispatchserver/*.proto
+import "github.com/linkyaa/fly-im-api@v1.0.2/proto/im/v1/conn.proto";
+
+option go_package = "internal/pkg/protocol/dispatchserver;dispatchserver";
+
+//消息分发请求
+message DispatchReq {
+  DeviceType senderDevice = 1; //设备类型
+  ChannelType channelType = 2; //频道类型
+  int64 senderId = 3;          //消息发送者
+  int64 channelId = 4;         //频道ID
+  bytes message = 5;           //消息内容,理论上由业务定义.
+}
+
+//消息分发响应
+message DispatchResp {
+    ResponseCode code = 1; //返回给客户端的code
+}
+
+//批量分发消息
+message BatchDispatchReq{
+  //消息长度列表
+  repeated int64 msgsLen = 1;
+
+  //多个消息组合的列表
+  bytes msgs = 2;
+}
+
+//批量分发消息响应
+message BatchDispatchResp {
+  repeated int64 userIds = 1;
+  repeated ResponseCode codes = 2;
+}
+
+
+
+//消息分发服务.
+service Dispatch {
+  //消息分发
+  rpc DispatchMessage (DispatchReq) returns(DispatchResp){}
+
+  //批量分发消息,如果不需要有状态的服务可以调用这个接口
+  rpc DispatchBatchMessage(BatchDispatchReq) returns (BatchDispatchResp){}
+}
