@@ -3,110 +3,55 @@ package websocket_net
 import (
 	"bytes"
 	"context"
-	"github.com/linkyaa/fly-im/pkg/flynet/base"
-	"github.com/linkyaa/fly-im/pkg/flynet/websocket/wsbase"
+	"github.com/linkyaa/fly-im/pkg/flynet"
+	"github.com/linkyaa/fly-im/pkg/flynet/frame"
 	"github.com/linkyaa/fly-im/pkg/logx"
 	"github.com/linkyaa/fly-im/pkg/pool"
 	"github.com/panjf2000/gnet/v2"
 	"go.uber.org/zap"
-	"io"
 	"net/url"
-	"time"
 )
 
 type (
 	WsNet struct {
-		gnet.Engine
-		wsAddr    string
-		opt       *base.Options
-		handler   base.EventHandler
-		mgr       *connMgr //连接管理
-		bufPool   pool.Pooler[*bytes.Buffer]
-		framePool pool.Pooler[*wsbase.WsFrame]
-	}
-
-	upgrader struct {
-		io.Reader
-		io.Writer
+		gnet.Engine                             //gnet engine
+		wsAddr      string                      //监听地址
+		opt         *flynet.Options             //运行参数
+		handler     flynet.EventHandler         //事件处理
+		bufPool     pool.Pooler[*bytes.Buffer]  //bytes内存池
+		framePool   pool.Pooler[*frame.WsFrame] //frame内存池
 	}
 )
 
-func (w *WsNet) OnBoot(eng gnet.Engine) (action gnet.Action) {
-	w.Engine = eng
-	return gnet.None
-}
+var (
+	_ gnet.EventHandler = (*WsNet)(nil)
+)
 
-func (w *WsNet) OnShutdown(_ gnet.Engine) {
-	logx.Logger.Warn("websocket server shutdown")
-}
-
-func (w *WsNet) OnOpen(c gnet.Conn) (out []byte, action gnet.Action) {
-	w.onOpen(c)
-	return nil, gnet.None
-}
-
-func (w *WsNet) OnClose(c gnet.Conn, err error) (action gnet.Action) {
-	conn, ok := c.Context().(*wsConn)
-	if !ok {
-		return gnet.Close
+func (w *WsNet) Stop() {
+	err := w.Engine.Stop(context.Background())
+	if err != nil {
+		logx.Error("ws net stop err", zap.Error(err))
+		return
 	}
-
-	_ = conn.Close()
-	w.handler.OnClose(conn, err)
-	return gnet.Close
 }
 
-func (w *WsNet) OnTraffic(c gnet.Conn) (action gnet.Action) {
-	conn, ok := c.Context().(*wsConn)
-	if !ok {
-		return gnet.Close
-	}
-
-	if conn.status == upgrading {
-		ok, err := conn.procUpgrade()
-		if err != nil {
-			logx.Logger.Error("upgrade err", zap.Error(err))
-			return gnet.Close
-		}
-
-		if !ok {
-			return gnet.None
-		}
-
-		w.handler.OnConnect(conn)
+func (w *WsNet) Run(ctx context.Context) {
+	parse, err := url.Parse(w.wsAddr)
+	if err != nil {
+		logx.Panic("ws net parse add err", zap.String("addr", w.wsAddr), zap.Error(err))
 		return
 	}
 
-	//TODO：检查是否有消息
+	logx.Info("websocket server", zap.String("scheme", parse.Scheme),
+		zap.String("host", parse.Host),
+		zap.String("path", parse.Path),
+		zap.String("port", parse.Port()),
+		zap.String("query", parse.RawQuery),
+		zap.String("fragment", parse.Fragment),
+	)
 
-	err := conn.procWsFrames()
-	if err != nil {
-		return gnet.Close
-	}
-
-	w.handler.OnData(conn)
-	return gnet.None
-}
-
-func (w *WsNet) OnTick() (delay time.Duration, action gnet.Action) {
-	return time.Minute, gnet.None
-}
-
-func (w *WsNet) Run() {
-
-	parse, err := url.Parse(w.wsAddr)
-	if logx.EnableDebug() {
-		logx.Logger.Info("websocket server", zap.String("scheme", parse.Scheme),
-			zap.String("host", parse.Host),
-			zap.String("path", parse.Path),
-			zap.String("port", parse.Port()),
-			zap.String("query", parse.RawQuery),
-			zap.String("fragment", parse.Fragment),
-		)
-	}
-	//TODO:支持wss协议
 	if parse.Scheme == "wss" {
-		logx.Logger.Error("暂不支持wss协议")
+		logx.Panic("暂不支持wss协议")
 		return
 	}
 
@@ -114,30 +59,21 @@ func (w *WsNet) Run() {
 		gnet.WithTicker(true),
 		gnet.WithMulticore(true),
 	)
+
 	if err != nil {
-		logx.Logger.Error("gnet run err", zap.Error(err))
+		logx.Fatal("ws gnet run err", zap.Error(err))
 	}
 }
 
-func (w *WsNet) Stop() {
-	err := w.Engine.Stop(context.Background())
-	if err != nil {
-		logx.Logger.Error("stop gnet err", zap.Error(err))
-	}
-}
-
-func New(addr string, handler base.EventHandler, opt *base.Options) *WsNet {
+func New(addr string, handler flynet.EventHandler, opt *flynet.Options) *WsNet {
 	res := &WsNet{
 		wsAddr:  addr,
 		opt:     opt,
 		handler: handler,
-		mgr:     newConnMgr(),
-		bufPool: pool.NewStdPool[*bytes.Buffer](func() any {
+		bufPool: pool.NewStdPool[*bytes.Buffer](func() *bytes.Buffer {
 			return &bytes.Buffer{}
 		}),
-		framePool: pool.NewStdPool[*wsbase.WsFrame](func() any {
-			return wsbase.NewWsFrame(4096)
-		}),
+		framePool: opt.Pool,
 	}
 	return res
 }

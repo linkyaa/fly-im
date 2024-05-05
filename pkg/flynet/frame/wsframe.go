@@ -1,4 +1,4 @@
-package wsbase
+package frame
 
 import (
 	"encoding/binary"
@@ -29,8 +29,6 @@ type (
 		headerSize, payloadSize, total int
 		header                         [ws.MaxHeaderSize]byte //最大头部
 		rootBuf                        []byte
-		//mask                           [4]byte
-		//Frame                          ws.Frame
 	}
 )
 
