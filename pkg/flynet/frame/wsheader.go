@@ -1,14 +1,18 @@
-package wsbase
+package frame
 
 import (
 	"encoding/binary"
 	"github.com/gobwas/ws"
 )
 
-// ReadHeader reads a frame header from r.
+var (
+	EmptyHeader ws.Header
+)
+
+// ReadClientHeader reads a frame header from r.
 // 先检查err, 在检查done
 // size 表示已经读取的全部的size
-func ReadHeader(h *ws.Header, bts []byte) (done bool, size int, err error) {
+func ReadClientHeader(h *ws.Header, bts []byte) (done bool, size int, err error) {
 	// Make slice of bytes with capacity 12 that could hold any header.
 	//
 	// The maximum header size is 14, but due to the 2 hop reads,

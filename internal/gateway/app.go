@@ -1,5 +1,12 @@
 package gateway
 
+import (
+	"context"
+	gatewayoption "github.com/linkyaa/fly-im/internal/gateway/option"
+	"github.com/linkyaa/fly-im/pkg/appruntime"
+	"github.com/linkyaa/fly-im/pkg/logx"
+)
+
 /*
 gateway服务的主要任务：
 1. 协议支持
@@ -13,3 +20,17 @@ type (
 	server struct {
 	}
 )
+
+func (s *server) Run(ctx context.Context) {
+	logx.Info("impl me")
+}
+
+func (s *server) Stop() {
+	logx.Info("impl me")
+}
+
+func NewServer(opt *gatewayoption.Options) appruntime.Runner {
+	res := &server{}
+
+	return res
+}

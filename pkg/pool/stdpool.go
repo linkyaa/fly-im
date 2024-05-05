@@ -16,9 +16,9 @@ func (s *stdPool[T]) Put(t T) {
 	s.pool.Put(t)
 }
 
-func NewStdPool[T any](factory func() any) Pooler[T] {
+func NewStdPool[T any](factory func() T) Pooler[T] {
 	res := &stdPool[T]{
-		pool: sync.Pool{New: factory},
+		pool: sync.Pool{New: func() interface{} { return factory() }},
 	}
 	return res
 }
