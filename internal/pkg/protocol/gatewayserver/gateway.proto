@@ -1,0 +1,7 @@
+syntax = "proto3";
+
+option go_package="internal/pkg/protocol/gatewayserver;gatewayserver";
+
+message DeliveryBatchMessageRequest {
+
+}
