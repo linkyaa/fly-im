@@ -1,7 +1,7 @@
-package ring
+package queue
 
 /*
-Package queue provides a fast, ring-buffer queue based on the version suggested by Dariusz Górecki.
+Package queue provides a fast, queue-buffer queue based on the version suggested by Dariusz Górecki.
 Using this instead of other, simpler, queue implementations (slice+append or linked list) provides
 substantial memory and time benefits, and fewer GC pauses.
 
